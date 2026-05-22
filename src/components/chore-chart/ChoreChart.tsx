@@ -22,7 +22,7 @@ import { getUserProfile, type UserProfile } from "@/firebase/userService";
 
 import { useChoreScheduler } from "@/hooks/useChoreScheduler";
 import { getTodayInputValue, toDateInputValue } from "@/utils/date";
-
+import { logout } from "@/firebase/authService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,6 +117,12 @@ export default function ChoreChart() {
         async function loadProfile() {
             try {
                 const profile = await getUserProfile(uid, email);
+
+                if (!profile) {
+                    console.error("No user profile found.");
+                    return;
+                }
+
                 setUserProfile(profile);
             } catch (error) {
                 console.error("Failed to load user profile:", error);
@@ -365,9 +371,25 @@ export default function ChoreChart() {
                         Family Chore Dashboard
                     </h1>
 
-                    <p className="text-muted-foreground">
-                        Logged in as {user.email} · Role: {userRole}
-                    </p>
+                    <div className="flex items-center justify-between gap-4">
+                        <p className="text-muted-foreground">
+                            Logged in as {user.email} · Role: {userRole}
+                        </p>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    await logout();
+                                } catch (error) {
+                                    console.error("Logout failed:", error);
+                                }
+                            }}
+                        >
+                            Sign Out
+                        </Button>
+                    </div>
                 </section>
 
                 {isParent && (

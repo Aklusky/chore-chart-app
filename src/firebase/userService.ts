@@ -13,24 +13,12 @@ export type UserProfile = {
 export async function getUserProfile(
     userId: string,
     email: string
-): Promise<UserProfile> {
+): Promise<UserProfile | null> {
     const ref = doc(db, "users", userId);
     const snapshot = await getDoc(ref);
 
     if (!snapshot.exists()) {
-        await setDoc(ref, {
-            email,
-            role: "parent",
-            familyId: userId,
-            createdAt: serverTimestamp(),
-        });
-
-        return {
-            uid: userId,
-            email,
-            role: "parent",
-            familyId: userId,
-        };
+        return null;
     }
 
     const data = snapshot.data();
@@ -39,6 +27,22 @@ export async function getUserProfile(
         uid: userId,
         email: data.email ?? email,
         role: data.role ?? "kid",
-        familyId: data.familyId ?? userId,
+        familyId: data.familyId,
+    };
+}
+
+export async function createParentProfile(userId: string, email: string) {
+    await setDoc(doc(db, "users", userId), {
+        email,
+        role: "parent",
+        familyId: userId,
+        createdAt: serverTimestamp(),
+    });
+
+    return {
+        uid: userId,
+        email,
+        role: "parent" as const,
+        familyId: userId,
     };
 }

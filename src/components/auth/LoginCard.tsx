@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { login, register } from "@/firebase/authService";
 import { acceptInvite } from "@/firebase/inviteService";
-
+import { createParentProfile } from "@/firebase/userService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,15 @@ export function LoginCard() {
 
             const user = userCredential.user;
 
-            if (inviteCode.trim()) {
-                await acceptInvite(
-                    inviteCode.trim(),
-                    user.uid,
-                    user.email ?? ""
-                );
+            if (isRegistering) {
+                if (inviteCode.trim()) {
+                    await acceptInvite(inviteCode.trim(), user.uid, user.email ?? "");
+                } else {
+                    await createParentProfile(user.uid, user.email ?? "");
+                }
+
+                window.location.reload();
+                return;
             }
         } catch (error) {
             console.error("Auth failed:", error);
@@ -59,14 +62,16 @@ export function LoginCard() {
                     }}
                 />
 
-                <Input
-                    placeholder="Invite code for kids only"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSubmit();
-                    }}
-                />
+                {isRegistering && (
+                    <Input
+                        placeholder="Invite code"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSubmit();
+                        }}
+                    />
+                )}
 
                 <Button className="w-full" onClick={handleSubmit}>
                     {isRegistering ? "Create Account" : "Login"}
@@ -76,7 +81,10 @@ export function LoginCard() {
                     type="button"
                     variant="ghost"
                     className="w-full"
-                    onClick={() => setIsRegistering((current) => !current)}
+                    onClick={() => {
+                        setIsRegistering((current) => !current);
+                        setInviteCode("");
+                    }}
                 >
                     {isRegistering
                         ? "Already have an account? Login"
