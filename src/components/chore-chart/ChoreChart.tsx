@@ -8,7 +8,6 @@ import { auth } from "@/firebase/firebase";
 import {
     getKids,
     addKid as saveKid,
-    deleteKid as removeKid,
     getChores,
     addChore as saveChore,
     deleteChore as removeChore,
@@ -19,27 +18,14 @@ import {
     saveCompletedChores,
 } from "@/firebase/completionService";
 
-import {
-    getUserProfile,
-    type UserProfile,
-} from "@/firebase/userService";
+import { getUserProfile, type UserProfile } from "@/firebase/userService";
 
 import { useChoreScheduler } from "@/hooks/useChoreScheduler";
-
-import {
-    getTodayInputValue,
-    toDateInputValue,
-} from "@/utils/date";
+import { getTodayInputValue, toDateInputValue } from "@/utils/date";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { LoginCard } from "@/components/auth/LoginCard";
 
@@ -52,12 +38,7 @@ import { KidSelectorCard } from "./KidSelectorCard";
 import { KidChoresCard } from "./KidChoresCard";
 import { MonthScheduleCard } from "./MonthScheduleCard";
 
-import type {
-    Chore,
-    ChoreDay,
-    ChoreFrequency,
-} from "@/types/chore";
-
+import type { Chore, ChoreDay, ChoreFrequency } from "@/types/chore";
 import type { Kid } from "@/types/kids";
 
 type MissedChore = {
@@ -82,9 +63,7 @@ function getWeekDatesBeforeSelected(dateString: string) {
 
     for (let i = dayOfWeek - 1; i >= 1; i--) {
         const date = new Date(selected);
-
         date.setDate(selected.getDate() - i);
-
         dates.push(toDateInputValue(date));
     }
 
@@ -94,94 +73,53 @@ function getWeekDatesBeforeSelected(dateString: string) {
 export default function ChoreChart() {
     const [user, setUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
-
-    const [userProfile, setUserProfile] =
-        useState<UserProfile | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     const [kids, setKids] = useState<Kid[]>([]);
     const [chores, setChores] = useState<Chore[]>([]);
-
-    const [selectedKidId, setSelectedKidId] =
-        useState("");
-
+    const [selectedKidId, setSelectedKidId] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const [selectedDate, setSelectedDate] =
-        useState(getTodayInputValue());
-
-    const [newKidName, setNewKidName] =
-        useState("");
-
-    const [newChoreTitle, setNewChoreTitle] =
-        useState("");
-
+    const [selectedDate, setSelectedDate] = useState(getTodayInputValue());
+    const [newKidName, setNewKidName] = useState("");
+    const [newChoreTitle, setNewChoreTitle] = useState("");
     const [newChoreFrequency, setNewChoreFrequency] =
         useState<ChoreFrequency>("daily");
-
-    const [newChoreDay, setNewChoreDay] =
-        useState<ChoreDay>("monday");
-
-    const [choresPerKidPerDay, setChoresPerKidPerDay] =
-        useState(1);
+    const [newChoreDay, setNewChoreDay] = useState<ChoreDay>("monday");
+    const [choresPerKidPerDay, setChoresPerKidPerDay] = useState(1);
 
     const [completed, setCompleted] = useState<string[]>([]);
-
-    const [missedChores, setMissedChores] =
-        useState<MissedChore[]>([]);
-
+    const [missedChores, setMissedChores] = useState<MissedChore[]>([]);
     const [showMonth, setShowMonth] = useState(false);
+
+    const [inviteCode, setInviteCode] = useState("");
+    const [inviteRole, setInviteRole] = useState<"kid" | "parent">("kid");
 
     const familyId = userProfile?.familyId ?? "";
     const userRole = userProfile?.role ?? "kid";
-    const [inviteRole, setInviteRole] =
-        useState<"kid" | "parent">("kid");
     const isParent = userRole === "parent";
-    const [inviteCode, setInviteCode] = useState("");
-    async function generateInvite() {
-        if (!familyId || !isParent) return;
 
-        try {
-            const code = await createInvite(
-                familyId,
-                inviteRole
-            );
-
-            setInviteCode(code);
-        } catch (error) {
-            console.error("Failed to create invite:", error);
-        }
-    }
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(
-            auth,
-            (currentUser) => {
-                setUser(currentUser);
-                setAuthLoading(false);
-            }
-        );
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setAuthLoading(false);
+        });
 
         return unsubscribe;
     }, []);
 
     useEffect(() => {
-        const uid = user?.uid;
+        const uid = user?.uid ?? "";
         const email = user?.email ?? "";
 
         if (!uid) return;
 
         async function loadProfile() {
             try {
-                const profile = await getUserProfile(
-                    uid,
-                    email
-                );
-
+                const profile = await getUserProfile(uid, email);
                 setUserProfile(profile);
             } catch (error) {
-                console.error(
-                    "Failed to load user profile:",
-                    error
-                );
+                console.error("Failed to load user profile:", error);
             }
         }
 
@@ -195,11 +133,10 @@ export default function ChoreChart() {
             setLoading(true);
 
             try {
-                const [kidsFromDb, choresFromDb] =
-                    await Promise.all([
-                        getKids(familyId),
-                        getChores(familyId),
-                    ]);
+                const [kidsFromDb, choresFromDb] = await Promise.all([
+                    getKids(familyId),
+                    getChores(familyId),
+                ]);
 
                 setKids(kidsFromDb);
                 setChores(choresFromDb);
@@ -208,10 +145,7 @@ export default function ChoreChart() {
                     setSelectedKidId(kidsFromDb[0].id);
                 }
             } catch (error) {
-                console.error(
-                    "Failed to load Firestore data:",
-                    error
-                );
+                console.error("Failed to load Firestore data:", error);
             } finally {
                 setLoading(false);
             }
@@ -220,9 +154,7 @@ export default function ChoreChart() {
         loadData();
     }, [familyId]);
 
-    const selectedKid = kids.find(
-        (kid) => kid.id === selectedKidId
-    );
+    const selectedKid = kids.find((kid) => kid.id === selectedKidId);
 
     const {
         choresWithAssignments,
@@ -244,18 +176,14 @@ export default function ChoreChart() {
 
         async function loadCompleted() {
             try {
-                const completedFromDb =
-                    await getCompletedChores(
-                        familyId,
-                        selectedDate
-                    );
+                const completedFromDb = await getCompletedChores(
+                    familyId,
+                    selectedDate
+                );
 
                 setCompleted(completedFromDb);
             } catch (error) {
-                console.error(
-                    "Failed to load completed chores:",
-                    error
-                );
+                console.error("Failed to load completed chores:", error);
             }
         }
 
@@ -272,41 +200,26 @@ export default function ChoreChart() {
                     return;
                 }
 
-                const weekDates =
-                    getWeekDatesBeforeSelected(selectedDate);
+                const weekDates = getWeekDatesBeforeSelected(selectedDate);
 
                 const missedForWeek = await Promise.all(
                     weekDates.map(async (date) => {
-                        const completedForDate =
-                            await getCompletedChores(
-                                familyId,
-                                date
-                            );
+                        const completedForDate = await getCompletedChores(familyId, date);
 
                         return (
                             monthSchedule
                                 .find((day) => day.date === date)
-                                ?.chores.filter(
-                                    (chore) =>
-                                        !completedForDate.includes(
-                                            chore.id
-                                        )
-                                )
+                                ?.chores.filter((chore) => !completedForDate.includes(chore.id))
                                 .map((chore) => {
                                     const assignedKid = kids.find(
-                                        (kid) =>
-                                            kid.id ===
-                                            chore.assignedKidId
+                                        (kid) => kid.id === chore.assignedKidId
                                     );
 
                                     return {
                                         id: chore.id,
                                         title: chore.title,
-                                        assignedKidName:
-                                            assignedKid?.name ??
-                                            "Unknown",
-                                        assignedKidId:
-                                            chore.assignedKidId,
+                                        assignedKidName: assignedKid?.name ?? "Unknown",
+                                        assignedKidId: chore.assignedKidId,
                                         dueDate: date,
                                     };
                                 }) ?? []
@@ -316,46 +229,106 @@ export default function ChoreChart() {
 
                 setMissedChores(missedForWeek.flat());
             } catch (error) {
-                console.error(
-                    "Failed to load missed chores:",
-                    error
-                );
+                console.error("Failed to load missed chores:", error);
             }
         }
 
         loadMissed();
-    }, [
-        familyId,
-        selectedDate,
-        monthSchedule,
-        kids,
-    ]);
+    }, [familyId, selectedDate, monthSchedule, kids]);
 
-    const selectedKidMissedChores =
-        missedChores.filter(
-            (chore) =>
-                chore.assignedKidId === selectedKidId
-        );
+    const selectedKidMissedChores = missedChores.filter(
+        (chore) => chore.assignedKidId === selectedKidId
+    );
 
-    const allowanceEligible =
-        selectedKidMissedChores.length === 0;
+    const allowanceEligible = selectedKidMissedChores.length === 0;
+
+    async function generateInvite() {
+        if (!familyId || !isParent) return;
+
+        try {
+            const code = await createInvite(familyId, inviteRole);
+            setInviteCode(code);
+        } catch (error) {
+            console.error("Failed to create invite:", error);
+        }
+    }
 
     async function toggleChore(id: string) {
         if (!familyId) return;
 
-        const updatedCompleted =
-            completed.includes(id)
-                ? completed.filter(
-                    (choreId) => choreId !== id
-                )
-                : [...completed, id];
+        const updatedCompleted = completed.includes(id)
+            ? completed.filter((choreId) => choreId !== id)
+            : [...completed, id];
 
         setCompleted(updatedCompleted);
 
-        await saveCompletedChores(
+        await saveCompletedChores(familyId, selectedDate, updatedCompleted);
+    }
+
+    async function addKid() {
+        if (!familyId || !newKidName.trim() || !isParent) return;
+
+        const kid = await saveKid(familyId, newKidName.trim());
+
+        setKids((current) => [...current, kid]);
+
+        if (!selectedKidId) {
+            setSelectedKidId(kid.id);
+        }
+
+        setNewKidName("");
+    }
+
+    async function addChore() {
+        if (!familyId || !newChoreTitle.trim() || !isParent) return;
+
+        const baseChore = {
+            title: newChoreTitle.trim(),
+            rotationOffset: kids.length === 0 ? 0 : chores.length % kids.length,
+            frequency: newChoreFrequency,
+        };
+
+        const chore = await saveChore(
             familyId,
-            selectedDate,
-            updatedCompleted
+            newChoreFrequency === "daily"
+                ? baseChore
+                : {
+                    ...baseChore,
+                    scheduledDay: newChoreDay,
+                }
+        );
+
+        setChores((current) => [...current, chore]);
+
+        setNewChoreTitle("");
+        setNewChoreFrequency("daily");
+        setNewChoreDay("monday");
+    }
+
+    async function deleteChore(choreId: string) {
+        if (!familyId || !isParent) return;
+
+        await removeChore(familyId, choreId);
+
+        setChores((current) => current.filter((chore) => chore.id !== choreId));
+        setCompleted((current) => current.filter((id) => id !== choreId));
+    }
+
+    function rotateChore(choreId: string) {
+        if (!isParent) return;
+
+        setChores((current) =>
+            current.map((chore) =>
+                chore.id === choreId
+                    ? {
+                        ...chore,
+                        rotationOffset:
+                            kids.length === 0
+                                ? 0
+                                : (chore.rotationOffset + 1) % kids.length,
+                    }
+                    : chore
+            )
         );
     }
 
@@ -363,9 +336,7 @@ export default function ChoreChart() {
         return (
             <main className="min-h-screen bg-muted/40 p-4">
                 <div className="mx-auto max-w-5xl">
-                    <p className="text-muted-foreground">
-                        Loading chore chart...
-                    </p>
+                    <p className="text-muted-foreground">Loading chore chart...</p>
                 </div>
             </main>
         );
@@ -385,10 +356,7 @@ export default function ChoreChart() {
         <main className="min-h-screen bg-muted/40 p-4">
             <div className="mx-auto max-w-5xl space-y-4">
                 <section className="space-y-2">
-                    <Badge
-                        variant="secondary"
-                        className="gap-1"
-                    >
+                    <Badge variant="secondary" className="gap-1">
                         <CalendarDays className="h-3 w-3" />
                         Chore Chart
                     </Badge>
@@ -398,8 +366,7 @@ export default function ChoreChart() {
                     </h1>
 
                     <p className="text-muted-foreground">
-                        Logged in as {user.email} · Role:{" "}
-                        {userRole}
+                        Logged in as {user.email} · Role: {userRole}
                     </p>
                 </section>
 
@@ -407,12 +374,8 @@ export default function ChoreChart() {
                     <ScheduleSettingsCard
                         selectedDate={selectedDate}
                         setSelectedDate={setSelectedDate}
-                        choresPerKidPerDay={
-                            choresPerKidPerDay
-                        }
-                        setChoresPerKidPerDay={
-                            setChoresPerKidPerDay
-                        }
+                        choresPerKidPerDay={choresPerKidPerDay}
+                        setChoresPerKidPerDay={setChoresPerKidPerDay}
                     />
                 )}
 
@@ -429,11 +392,9 @@ export default function ChoreChart() {
                     chores={chores}
                     kids={kids}
                     selectedDate={selectedDate}
-                    choresWithAssignments={
-                        choresWithAssignments
-                    }
-                    rotateChore={() => { }}
-                    deleteChore={() => { }}
+                    choresWithAssignments={choresWithAssignments}
+                    rotateChore={rotateChore}
+                    deleteChore={deleteChore}
                 />
 
                 <KidSelectorCard
@@ -450,144 +411,77 @@ export default function ChoreChart() {
                     todaysChores={todaysChores}
                     completed={completed}
                     toggleChore={toggleChore}
-                    allowanceEligible={
-                        allowanceEligible
-                    }
-                    missedChores={
-                        selectedKidMissedChores
-                    }
+                    allowanceEligible={allowanceEligible}
+                    missedChores={selectedKidMissedChores}
                 />
 
                 {isParent && (
                     <>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Kid Invites</CardTitle>
+                                <CardTitle>Family Invites</CardTitle>
                             </CardHeader>
 
                             <CardContent className="space-y-3">
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant={inviteRole === "kid" ? "default" : "outline"}
+                                        onClick={() => setInviteRole("kid")}
+                                    >
+                                        Kid Invite
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant={inviteRole === "parent" ? "default" : "outline"}
+                                        onClick={() => setInviteRole("parent")}
+                                    >
+                                        Parent Invite
+                                    </Button>
+                                </div>
+
                                 <Button onClick={generateInvite}>
-                                    Create Kid Invite
+                                    Create {inviteRole} Invite
                                 </Button>
 
                                 {inviteCode && (
                                     <div className="rounded-lg border bg-muted/40 p-3">
-                                        <p className="text-sm font-medium">
-                                            Invite Code
-                                        </p>
+                                        <p className="text-sm font-medium">Invite Code</p>
 
                                         <p className="font-mono text-lg tracking-widest">
                                             {inviteCode}
                                         </p>
 
                                         <p className="text-xs text-muted-foreground">
-                                            Give this code to your child to join the family.
+                                            Give this code to the person you want to add to the
+                                            family.
                                         </p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
+
                         <AddKidCard
                             newKidName={newKidName}
                             setNewKidName={setNewKidName}
-                            addKid={async () => {
-                                if (
-                                    !familyId ||
-                                    !newKidName.trim()
-                                )
-                                    return;
-
-                                const kid = await saveKid(
-                                    familyId,
-                                    newKidName.trim()
-                                );
-
-                                setKids((current) => [
-                                    ...current,
-                                    kid,
-                                ]);
-
-                                setNewKidName("");
-                            }}
+                            addKid={addKid}
                         />
 
                         <AddChoreCard
                             newChoreTitle={newChoreTitle}
-                            setNewChoreTitle={
-                                setNewChoreTitle
-                            }
-                            newChoreFrequency={
-                                newChoreFrequency
-                            }
-                            setNewChoreFrequency={
-                                setNewChoreFrequency
-                            }
+                            setNewChoreTitle={setNewChoreTitle}
+                            newChoreFrequency={newChoreFrequency}
+                            setNewChoreFrequency={setNewChoreFrequency}
                             newChoreDay={newChoreDay}
-                            setNewChoreDay={
-                                setNewChoreDay
-                            }
-                            addChore={async () => {
-                                if (
-                                    !familyId ||
-                                    !newChoreTitle.trim()
-                                )
-                                    return;
-
-                                const baseChore = {
-                                    title:
-                                        newChoreTitle.trim(),
-                                    rotationOffset:
-                                        kids.length === 0
-                                            ? 0
-                                            : chores.length %
-                                            kids.length,
-                                    frequency:
-                                        newChoreFrequency,
-                                };
-
-                                const chore =
-                                    await saveChore(
-                                        familyId,
-                                        newChoreFrequency ===
-                                            "daily"
-                                            ? baseChore
-                                            : {
-                                                ...baseChore,
-                                                scheduledDay:
-                                                    newChoreDay,
-                                            }
-                                    );
-
-                                setChores((current) => [
-                                    ...current,
-                                    chore,
-                                ]);
-
-                                setNewChoreTitle("");
-                                setNewChoreFrequency(
-                                    "daily"
-                                );
-                            }}
+                            setNewChoreDay={setNewChoreDay}
+                            addChore={addChore}
                         />
 
                         <ConfiguredChoresCard
                             chores={chores}
-                            rotateChore={() => { }}
-                            deleteChore={async (
-                                choreId
-                            ) => {
-                                await removeChore(
-                                    familyId,
-                                    choreId
-                                );
-
-                                setChores((current) =>
-                                    current.filter(
-                                        (chore) =>
-                                            chore.id !== choreId
-                                    )
-                                );
-                            }}
+                            rotateChore={rotateChore}
+                            deleteChore={deleteChore}
                         />
 
                         <Card>
@@ -599,9 +493,7 @@ export default function ChoreChart() {
                             </CardHeader>
 
                             <CardContent>
-                                <Button variant="secondary">
-                                    Enable reminders later
-                                </Button>
+                                <Button variant="secondary">Enable reminders later</Button>
                             </CardContent>
                         </Card>
                     </>

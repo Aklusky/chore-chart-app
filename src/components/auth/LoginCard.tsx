@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { login, register } from "@/firebase/authService";
-import { acceptKidInvite } from "@/firebase/inviteService";
+import { acceptInvite } from "@/firebase/inviteService";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ export function LoginCard() {
             const user = userCredential.user;
 
             if (inviteCode.trim()) {
-                await acceptKidInvite(
+                await acceptInvite(
                     inviteCode.trim(),
                     user.uid,
                     user.email ?? ""
